@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Pesanan Makanan</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            box-sizing: border-box;
+        }
+
+        header {
+            background-color: #333;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        nav a {
+            margin: 0 1rem;
+            color: white;
+            text-decoration: none;
+        }
+
+        main {
+            padding: 2rem;
+        }
+
+        .menu-item {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #fff;
+            border-radius: 8px;
+            background-color: #222;
+            text-align: center;
+        }
+
+        .menu-item img {
+            border-radius: 8px;
+            max-width: 150px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+
+        button {
+            background-color: #555;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #777;
+        }
+
+        footer {
+            text-align: center;
+            padding: 1rem;
+            background-color: #333;
+            color: white;
+        }
+
+        #cart {
+            list-style: none;
+            padding: 0;
+        }
+
+        #cart li {
+            margin-bottom: 0.5rem;
+        }
+
+        #savedDataContainer {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #222;
+            border-radius: 8px;
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none; 
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); 
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            text-align: center;
+        }
+
+        .modal button {
+            margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #555;
+            color: white;
+        }
+
+        .modal button:hover {
+            background-color: #777;
+        }
+
+    </style>
+</head>
+<body onload="loadCart()">
+    <header>
+        <h1>Pesanan Makanan Online</h1>
+        <nav>
+            <a href="#menu">Menu</a>
+            <a href="#pesan">Pesan Sekarang</a>
+            <button id="login" onclick="login()">Login (Dev)</button>
+        </nav>
+    </header>
+    <main>
+        <section id="menu">
+            <h2>Menu Makanan</h2>
+            <div class="menu-item">
+                <img src="https://via.placeholder.com/150" alt="Nasi Goreng">
+                <h3>Nasi Goreng</h3>
+                <p>Kategori: Makanan Berat</p>
+                <p>Harga: Rp20.000</p>
+                <button onclick="addToCart('Nasi Goreng', 20000, 'Makanan Berat')">Tambah ke Keranjang</button>
+            </div>
+            <div class="menu-item">
+                <img src="https://via.placeholder.com/150" alt="Mie Goreng">
+                <h3>Mie Goreng</h3>
+                <p>Kategori: Makanan Berat</p>
+                <p>Harga: Rp18.000</p>
+                <button onclick="addToCart('Mie Goreng', 18000, 'Makanan Berat')">Tambah ke Keranjang</button>
+            </div>
+        </section>
+        <section id="pesan">
+            <h2>Keranjang Pesanan</h2>
+            <ul id="cart"></ul>
+            <p>Total: Rp<span id="total">0</span></p>
+            <button onclick="checkout()">Pesan Sekarang</button>
+        </section>
+        <section id="savedDataContainer">
+            <h2>Data Pesanan Tersimpan</h2>
+            <button onclick="showSavedData()">Lihat Data Tersimpan</button>
+            <ul id="savedData"></ul>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 Pesanan Makanan Online</p>
+    </footer>
+
+    <!-- Modal Konfirmasi Checkout -->
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <h2>Konfirmasi Pesanan</h2>
+            <ul id="modalCartList"></ul>
+            <p><strong>Total: Rp<span id="modalTotal">0</span></strong></p>
+            <div>
+                <button onclick="confirmCheckout()">Ya, Lanjutkan</button>
+                <button onclick="closeModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cart = JSON.parse(localStorage.getItem("cart")) || [];
+        let total = cart.reduce((sum, item) => sum + item.price, 0);
+        let isDev = false;
+
+        function addToCart(item, price, category) {
+            cart.push({ item, price, category });
+            total += price;
+            saveCart();
+            updateCart();
+        }
+
+        function saveCart() {
+            localStorage.setItem("cart", JSON.stringify(cart));
+        }
+
+        function loadCart() {
+            updateCart();
+        }
+
+        function updateCart() {
+            const cartList = document.getElementById("cart");
+            const totalElement = document.getElementById("total");
+            cartList.innerHTML = "";
+            let categorizedCart = {};
+
+            cart.forEach((entry) => {
+                if (!categorizedCart[entry.category]) {
+                    categorizedCart[entry.category] = [];
+                }
+                categorizedCart[entry.category].push(entry);
+            });
+
+            for (let category in categorizedCart) {
+                let categoryHeader = document.createElement("li");
+                categoryHeader.innerHTML = `<strong>${category}</strong>`;
+                cartList.appendChild(categoryHeader);
+
+                categorizedCart[category].forEach((entry) => {
+                    let li = document.createElement("li");
+                    li.textContent = `${entry.item} - Rp${entry.price}`;
+                    cartList.appendChild(li);
+                });
+            }
+
+            totalElement.textContent = total;
+        }
+
+        function checkout() {
+            if (cart.length === 0) {
+                alert("Keranjang masih kosong! Tambahkan makanan terlebih dahulu.");
+                return;
+            }
+
+            showCheckoutModal();
+        }
+
+        function showCheckoutModal() {
+            const modal = document.getElementById("checkoutModal");
+            const modalCartList = document.getElementById("modalCartList");
+            const modalTotal = document.getElementById("modalTotal");
+
+            modalCartList.innerHTML = "";
+
+            cart.forEach(item => {
+                let li = document.createElement("li");
+                li.textContent = `${item.item} (${item.category}) - Rp${item.price}`;
+                modalCartList.appendChild(li);
+            });
+
+            modalTotal.textContent = total;
+
+            modal.style.display = "flex";
+        }
+
+        function closeModal() {
+            const modal = document.getElementById("checkoutModal");
+            modal.style.display = "none";
+        }
+
+        function confirmCheckout() {
+            let confirmation = confirm("Apakah Anda yakin ingin melanjutkan pesanan?");
+            if (confirmation) {
+                alert("Pesanan berhasil dikirim! Terima kasih.");
+                saveOrder();
+                cart = [];
+                total = 0;
+                saveCart();
+                updateCart();
+                closeModal();
+            } else {
+                closeModal();
+            }
+        }
+
+        function saveOrder() {
+            let savedOrders = JSON.parse(localStorage.getItem("savedOrders")) || [];
+            let order = {
+                date: new Date().toLocaleString(),
+                items: cart,
+                total: total
+            };
+            savedOrders.push(order);
+            localStorage.setItem("savedOrders", JSON.stringify(savedOrders));
+        }
+
+        function showSavedData() {
+            if (!isDev) {
+                alert("Hanya developer yang bisa melihat data pesanan.");
+                return;
+            }
+
+            let savedOrders = JSON.parse(localStorage.getItem("savedOrders")) || [];
+            let savedDataList = document.getElementById("savedData");
+            savedDataList.innerHTML = "";
+
+            if (savedOrders.length === 0) {
+                savedDataList.innerHTML = "<li>Belum ada pesanan tersimpan.</li>";
+                return;
+            }
+
+            savedOrders.forEach((order, index) => {
+                let orderDate = document.createElement("li");
+                orderDate.innerHTML = `<strong>Pesanan ${index + 1} - ${order.date}</strong>`;
+                savedDataList.appendChild(orderDate);
+
+                order.items.forEach((entry) => {
+                    let li = document.createElement("li");
+                    li.textContent = `${entry.item} (${entry.category}) - Rp${entry.price}`;
+                    savedDataList.appendChild(li);
+                });
+
+                let totalLi = document.createElement("li");
+                totalLi.innerHTML = `<strong>Total: Rp${order.total}</strong>`;
+                savedDataList.appendChild(totalLi);
+
+                let deleteButton = document.createElement("button");
+                deleteButton.textContent = "Hapus Pesanan";
+                deleteButton.onclick = () => deleteOrder(index);
+                savedDataList.appendChild(deleteButton);
+            });
+        }
+
+        function deleteOrder(index) {
+            let savedOrders = JSON.parse(localStorage.getItem("savedOrders")) || [];
+            savedOrders.splice(index, 1);
+            localStorage.setItem("savedOrders", JSON.stringify(savedOrders));
+            showSavedData();
+        }
+
+        function login() {
+            if (isDev) {
+                isDev = false;
+                document.getElementById("login").textContent = "Login (Dev)";
+                document.getElementById("savedData").style.display = "none";
+                alert("Anda telah logout.");
+            } else {
+                const password = prompt("Masukkan password untuk login sebagai developer:");
+                if (password === "dev123") {
+                    isDev = true;
+                    document.getElementById("login").textContent = "Logout (Dev)";
+                    document.getElementById("savedData").style.display = "block";
+                } else {
+                    alert("Password salah!");
+                }
+            }
+        }
+    </script>
+</body>
+</html>
